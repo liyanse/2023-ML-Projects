@@ -22,4 +22,5 @@ with open('requirements.csv','w',encoding='utf8',newline='')as f:
         info = [title, company, location, salary, requirements]
         thewriter.writerow(info)
 
-
+conda activate C:\Users\Lian.s\Anaconda3\envs\JobRequirementAnalysis
+C:\Users\Lian.s\Anaconda3\Scripts\conda.exe install -p C:/Users/Lian.s/Anaconda3/envs/JobRequirementAnalysis BeautifulSoup -y
