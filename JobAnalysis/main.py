@@ -1,227 +1,163 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import csv
-from datetime import *
-import smtplib, ssl
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import smtplib
-import mimetypes
-from email import encoders
-from email.message import Message
-from email.mime.audio import MIMEAudio
-from email.mime.base import MIMEBase
-from email.mime.image import MIMEImage
-import time
+import datetime as dt
+from config import WebScrapingAPIkey
+import sqlite3
 
 
-# In[46]:
-
-# Date and time object
-today =date.today()
-now =datetime.now().strftime("%H:%M:%S")
-
-# Data frame and series Utilities
-template  = {"Job Title":[],"Company Name":[],"Location":[],"Salaries":[],"Link":[]}
-errorTemplate={"Eror":[],"Location":[],"Date":[],"Time":[]}
-errorDataFrame= pd.DataFrame(errorTemplate)
-Main_DataFrame =pd.DataFrame(template)
-
-# Initiliaze variables
-error_reporter=""
-error_location=""
-url=""
-names=[]
-titles=[]
-links=[]
-locations=[]
-salaries=[]
+def make_indeed_url(search_job, search_location, job_age):
+    '''
+    This function takes in 3 search parameters and inserts them into an
+    indeed.com url to search for jobs in those parameters
+    input:
+        search_job (str): job title being searched for
+        search_location (str): city, state being searched
+        job_age (int): 3 or 7, max age of job posting in days
+    output:
+        indeed_job_url (str): url to indeed jobs of the given parameters
+    '''
+    job = search_job.replace(' ', '%20')
+    location = search_location.replace(',', '%2C').replace(' ', '%20')
+    indeed_job_url = f'https://www.indeed.com/jobs?q={job}&l={location}&fromage={job_age}'
+    return indeed_job_url
 
 
-# In[ ]:
-
-# In[47]:
-
-def getPage(url):
-
+def scrape_job_card(job_meta):
+    '''
+    This function takes in a job_card_element from indeed.com and extracts the
+    job title, company name, company location, and estimated salary
+    input:
+        job_card_element, selenium webdriver object (specific to indeed.com)
+    output:
+        - job_title, str
+        - company_name, str
+        - company_location, str
+        - estimated_salary, str
+    '''
     try:
-        page = requests.get(url)
-        page.raise_for_status()
-        soup = BeautifulSoup(page.content,'html.parser')
-        result = soup.find(id="mosaic-provider-jobcards")
-        job_elements = result.find_all("div", class_="job_seen_beacon")
-
-        error_reporter="Success Soup"
-        error_location="GetPage URL"
-        errorLog_file(error_reporter,error_location,today,now)
-        soup = BeautifulSoup(page.content,'html.parser')
-        result = soup.find(id="mosaic-provider-jobcards")
-        job_elements = result.find_all("div", class_="job_seen_beacon")
-
-    except Exception as ex:
-
-        error_reporter= str(ex)
-        error_location="Soup"
-        errorLog_file(error_reporter,error_location,today,now)
-        message=error_reporter+" in the "+error_location+" Time "+str(today)+" "+str(now)
-
-        email_Update("error","getPage "+error_reporter)
-        print("An error as occured in the Soup: ")
-    else:
-        print("Soup elements have been successfuly scraped.")
-        return soup
-
-def jobCard(url):
+        job_title = job_meta.find('h2', {'class': 'jobTitle'}).get_text().lstrip('new\n')
+    except:
+        job_title = 'No job title found'
     try:
-        soup =getPage(url)
-    except Exception as ex:
-        error_reporter=str(ex)
-        error_location="getPage Function Failed"
-        errorLog_file(error_reporter,error_location,today,now)
-        message=error_reporter+" in the "+error_location+" Time "+str(today)+" "+str(now)
-        email_Update("error","jobCard "+error_reporter)
-    else:
-        title_element = soup.find_all("h2", class_="jobTitle")
-        company_element = soup.find_all("span", class_="companyName")
-        location_element = soup.find_all("div", class_="companyLocation")
-        salary = soup.find_all("div", class_="attribute_snippet")
-        job_link = soup.find_all("a", class_="tapItem")
-
-        for title in title_element:
-            titles.append(title.text)
-        for name in company_element:
-            names.append(name.text)
-        for location in location_element:
-            locations.append(location.text)
-        for salar in salary:
-            salaries.append(salar.text)
-        for link in job_link:
-            links.append("https://www.indeed.com"+link.get("href"))
-
-        print("Success Job card  data")
-
-        error_reporter="Success Jobcard"
-        error_location="JobCard"
-        errorLog_file(error_reporter,error_location,today,now)
-        return (titles,names,locations,salaries,links)
-
-def createDataFrame(url):
+        company_name = job_meta.find('span', {'class': 'companyName'}).get_text()
+    except:
+        company_name = 'No Company Name'
     try:
-        jobCard(url)
-        df_titles=pd.Series(titles,name="Job Title")
-        df_names=pd.Series(names,name="Company Name")
-        df_locations=pd.Series(locations,name="Location")
-        df_salaries=pd.Series(salaries,name="Salaries")
-        df_job_link=pd.Series(links,name="Links")
-        # Frame contains all the row required for our dataFrame
-        frames =[df_titles,df_names,df_locations,df_salaries,df_job_link]
-        # Concat all.
-        job_card =pd.concat(frames,axis=1)
-        print("Data Frame successfull created")
-    except Exception as ex:
-        error_reporter=str(ex)
-        error_location="createDataFrame"
-        message=error_reporter+" in the "+error_location+" Time "+str(today)+" "+str(now)
-        errorLog_file(error_reporter,error_location,today,now)
-        email_Update("error","createDataFrame "+error_reporter)
-        print(ex)
-    else:
-            # Return dataFrame
-        return job_card
-# In[54]:
-
-# Email Function
-def email_Update(file,subject):
-    emailfrom = "<Your email>"
-    emailto ="<Recipient email>"
-    fileToSend = file+".csv"
-    username = "user"
-    password = "<Your password>"
-
-    msg = MIMEMultipart()
-    msg["From"] = emailfrom
-    msg["To"] = emailto
-    msg["Subject"] = subject
-    msg.preamble = subject
-
-    ctype, encoding = mimetypes.guess_type(fileToSend)
-    if ctype is None or encoding is not None:
-        ctype = "application/octet-stream"
-
-    maintype, subtype = ctype.split("/", 1)
-
-    if maintype == "text":
-        fp = open(fileToSend)
-        # Note: we should handle calculating the charset
-        attachment = MIMEText(fp.read(), _subtype=subtype)
-        fp.close()
-    elif maintype == "image":
-        fp = open(fileToSend, "rb")
-        attachment = MIMEImage(fp.read(), _subtype=subtype)
-        fp.close()
-    elif maintype == "audio":
-        fp = open(fileToSend, "rb")
-        attachment = MIMEAudio(fp.read(), _subtype=subtype)
-        fp.close()
-    else:
-        fp = open(fileToSend, "rb")
-        attachment = MIMEBase(maintype, subtype)
-        attachment.set_payload(fp.read())
-        fp.close()
-        encoders.encode_base64(attachment)
-    attachment.add_header("Content-Disposition", "attachment", filename=fileToSend)
-    msg.attach(attachment)
-
-    server = smtplib.SMTP("smtp.gmail.com:587")
-    server.starttls()
-    server.login(emailfrom,password)
-    server.sendmail(emailfrom, emailto, msg.as_string())
-    print("Quitting the Server!!!")
-    server.quit()
-# In[55]:
-
-def errorLog_file(error,loc,date,time):
+        company_location = job_meta.find('div', {'class': 'companyLocation'}).get_text()
+    except:
+        company_location = 'No Location'
     try:
-        errorTemplate={"Eror":[error],"Location":[loc],"Date":[date],"Time":[time]}
-        errorDataFrame= pd.DataFrame(errorTemplate)
+        estimated_salary = job_meta.find('div', {'class': 'metadata salary-snippet-container'}).get_text()
+    except:
+        estimated_salary = 'No Estimated Salary'
+    return job_title, company_name, company_location, estimated_salary
 
-    except Exception as ex:
-        error_reporter=str(ex)
-        error_location="Driver main"
-        message=error_reporter+" in the "+error_location+" Time "+str(today)+" "+str(now)
 
-        email_Update("error","ErrorLog_File "+error_reporter)
-    else:
-        errorDataFrame.to_csv("error.csv")
-# In[56]:
-def DriverMain(listOfposition):
+def scrape_job_description(job_desc_href):
+    '''
+    This function takes in a job_card_element from indeed.com and extracts the
+    job description.
+    input:
+        job_card_element: selenium webdriver object (specific to indeed.com)
+    output:
+        job_desc, str, can be extremely long (avg 3,000-7,000 characters)
+    '''
     try:
-        for job_title in listOfposition:
-            city="waterbury"
-            state="CT"
-            url ="https://www.indeed.com/jobs?q={job_title}&l={city}%2C%20{state}&fromage=1&".format(job_title=job_title,city=city,state=state)
-
-            file = createDataFrame(url)
-
-            file.to_csv(job_title+".csv")
-            email_Update(job_title,"Job Update!")
-            print(url)
-            print(job_title+" Job  CSV created Email sent!")
-            time.sleep(10)
-    except Exception as ex:
-        print("Failed link: "+url)
-        print(ex)
-        error_reporter=str(ex)
-        error_location="Driver main"
-        message=error_reporter+" in the "+error_location+" Time "+str(today)+" "+str(now)
-        email_Update("error","DriverMain "+error_reporter)
-        errorLog_file(error_reporter,error_location,today,now)
-    else:
-        print(job_title," Job file has been searched and saved as csv ")
-        print()
-# In[59]:
+        page = web_scrape_api_call(job_desc_href)
+        soup = BeautifulSoup(page.content, 'html.parser')
+        job_desc = soup.find(id='jobDescriptionText')
+        job_desc = job_desc.text.replace('\n', ' ').replace('\r', '')
+    except:
+        job_desc = 'No Job Description'
+    return job_desc
 
 
-listOfposition=["Developer","Programmer","software"] # List of job titles to search
-DriverMain(listOfposition)      # Driver function
+def scrape_job_page_meta(job_page_html):
+    '''
+    This function takes in a html job page and uses beautiful soup to extract each jobs title, company name,
+    estimated salary, job description href and then uses that href to open the job description page and
+    extract that job description. While its looping through each job on the job page it is storing the
+    information in a pandas dataframe.
+    input:
+        job_page_html: html response from indeed search request
+    output:
+        jobs_df: pandas dataframe containing the scraped data from the job search page
+    '''
+    page_soup = BeautifulSoup(job_page_html.text, 'lxml')
+    df_columns = ['job_title', 'company_name', 'company_location', 'est_salary', 'job_href', 'job_desc']
+    jobs_df = pd.DataFrame(columns=df_columns)
+    for job in page_soup.find_all('div', {"id": "mosaic-provider-jobcards"}):
+        # Lets find the job title
+        for href_post in job.find_all('a', href=True):
+            if href_post.find('a', href=True):
+                # this is for the url for the job posting
+                job_desc_href = 'https://www.indeed.com' + str(href_post['href'])
+                job_desc = scrape_job_description(job_desc_href)
+                for job_meta in href_post.find_all('div', {"class": "job_seen_beacon"}):
+                    job_title, company_name, company_location, estimated_salary = scrape_job_card(job_meta)
+                    print(f'{job_title}, {job_desc_href}')
+                    job_dict = {'job_title': job_title,
+                                'company_name': [company_name],
+                                'company_location': [company_location],
+                                'est_salary': [estimated_salary],
+                                'job_href': [job_desc_href],
+                                'job_desc': [job_desc]}
+                    j_df = pd.DataFrame.from_dict(job_dict)
+                    jobs_df = jobs_df.append(j_df, ignore_index=True)
+    return jobs_df
+
+
+def job_loc_scrape_loop(job_list, loc_list, job_age):
+    '''
+    This function takes in a list of job titles, locations and age.
+    It then loops through each item of both lists, creates a url to call
+    and then scrapes the given info from each page.
+    At the end of each item in the loop it saves the job info to a sql table
+    '''
+    date = dt.datetime.today().strftime('%Y-%m-%d')
+    for job in job_list:
+        for loc in loc_list:
+            print(f'Scraping: {job} {loc}')
+            indeed_url = make_indeed_url(job, loc, job_age)
+            indeed_response = web_scrape_api_call(indeed_url)
+            result_df = scrape_job_page_meta(indeed_response)
+            result_df['retrieve_date'] = date
+            print('dumping to sql')
+            sql_dump(result_df, 'data/jobs', 'indeed_jobs')
+    return None
+
+
+def sql_dump(df, db, table):
+    con = sqlite3.connect(db)  # db="data\jobs.db"
+    df.to_sql(table, con, if_exists='append')  # table='jobs_data'
+    con.close()
+
+
+def web_scrape_api_call(url_to_scrape):
+    '''
+    sends the url that we would like to scrape to the webscrapingapi
+    so that our calls can be ananomyzed.
+    '''
+    url = "https://api.webscrapingapi.com/v1"
+    params = {
+        "api_key": WebScrapingAPIkey,
+        "url": url_to_scrape
+    }
+    response = requests.request("GET", url, params=params)
+    return response
+
+
+if __name__ == '__main__':
+    job_list = ["Data Scientist", "Data Analyst", "Data Engineer",
+                "Machine Learning Engineer", "Business Intelligence Analyst"]
+    primary_city_state_list = ["Atlanta, GA", "Austin, TX", "Boston, MA", "Chicago, IL",
+                               "Denver, CO", "Dallas-Ft. Worth, TX", "Los Angeles, CA",
+                               "New York City, NY", "San Francisco, CA", "Seattle, WA"]
+    job_loc_scrape_loop(job_list, primary_city_state_list, '7')
+    secondary_city_state_list = ["Phoenix, AZ", "Salt Lake City, UT", "San Antonio, TX",
+                                 "San Diego, CA", "Jacksonville, FL", "Columbus, OH", "Boise, ID",
+                                 "Washington, DC", "Portland, OR", "Kansas City", "Raleigh, NC",
+                                 "Boulder, CO", "Miami, FL", "Northern Virginia", "Orlando, FL"]
+
+    job_loc_scrape_loop(job_list, secondary_city_state_list, '7')
