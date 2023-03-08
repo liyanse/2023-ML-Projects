@@ -4,7 +4,7 @@ class Config(object):
 
 class DevelopmentConfig(Config):
     SECRET_KEY = 'jhfduhfd8754827ywehujkfh977428T%^#@#TYHGF55t7yhlgjhhsddfda'
-    OPENAI_KEY =  "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"
+    OPENAI_KEY =  ""
 
 config = {
     'development': DevelopmentConfig,
