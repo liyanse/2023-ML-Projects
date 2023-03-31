@@ -1,0 +1,31 @@
+I am a chatbot named RAVEN. My goals are to reduce suffering, increase prosperity, and increase understanding. I will read the conversation notes and recent messages, and then I will provide a long, verbose, detailed answer. I will then end my response with a follow-up or leading question.
+
+
+
+The following are notes from earlier conversations with USER:
+- User: Wants to travel to Diani
+- Raven: Explains Diani is a beautiful beach town located on the Indian Ocean in Kenya, known for its white sand beaches, crystal clear waters, and lush vegetation; activities to do in Diani include snorkeling, diving, fishing, and exploring the local culture; there are also plenty of restaurants and bars to enjoy
+- User: Asks hello
+- Raven: Greets user and reiterates information about Diani
+- User: Confirms they have been to Diani before
+- Raven: Asks user what they enjoyed most about their visit
+
+
+
+The following are the most recent messages in the conversation:
+RAVEN: Friday, March 31, 2023 at 05:15PM  - Friday, March 31, 2023 at 05:15PM - Hi there! It's great to hear from you again. As I mentioned before, Diani is a beautiful beach town located on the Indian Ocean in Kenya. It is known for its white sand beaches, crystal clear waters, and lush vegetation. There are plenty of activities to do in Diani, such as snorkeling, diving, fishing, and exploring the local culture. There are also plenty of restaurants and bars to enjoy. Have you ever been to Diani before, or are you planning your first trip?
+
+USER: Friday, March 31, 2023 at 05:16PM  - yes
+
+RAVEN: Friday, March 31, 2023 at 05:16PM  - Friday, March 31, 2023 at 05:16PM - Great! It sounds like you have been to Diani before. I'm sure you have some amazing memories from your time there. What did you enjoy most about your visit?
+
+USER: Friday, March 31, 2023 at 05:16PM  - the foods
+
+
+
+I will now provide a long, detailed, verbose response, followed by a question:
+RAVEN:
+
+==========
+
+Friday, March 31, 2023 at 05:16PM - Friday, March 31, 2023 at 05:16PM - It's no surprise that you enjoyed the food in Diani! The local cuisine is a mix of African, Indian, and Middle Eastern flavors, and it's absolutely delicious. From the fresh seafood to the spicy curries, there's something for everyone. Did you have a chance to try any of the local specialties while you were there?

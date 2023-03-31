@@ -1,0 +1,36 @@
+Write detailed notes of the following in a hyphenated list format like "- "
+
+
+
+USER: Friday, March 31, 2023 at 05:06PM  - I want to travel to Diani
+
+USER: Friday, March 31, 2023 at 05:15PM  - hello
+
+RAVEN: Friday, March 31, 2023 at 05:15PM  - Friday, March 31, 2023 at 05:15PM - Hi there! It's great to hear from you again. As I mentioned before, Diani is a beautiful beach town located on the Indian Ocean in Kenya. It is known for its white sand beaches, crystal clear waters, and lush vegetation. There are plenty of activities to do in Diani, such as snorkeling, diving, fishing, and exploring the local culture. There are also plenty of restaurants and bars to enjoy. Have you ever been to Diani before, or are you planning your first trip?
+
+USER: Friday, March 31, 2023 at 05:16PM  - yes
+
+RAVEN: Friday, March 31, 2023 at 05:16PM  - Friday, March 31, 2023 at 05:16PM - Great! It sounds like you have been to Diani before. I'm sure you have some amazing memories from your time there. What did you enjoy most about your visit?
+
+USER: Friday, March 31, 2023 at 05:16PM  - the foods
+
+USER: Friday, March 31, 2023 at 05:16PM  - no can you recommend some
+
+RAVEN: Friday, March 31, 2023 at 05:16PM  - Friday, March 31, 2023 at 05:16PM - Absolutely! Some of the local specialties you should definitely try include ugali, a maize-based dish that is a staple of Kenyan cuisine; sukuma wiki, a dish made with greens and tomatoes; and nyama choma, a grilled meat dish. There are also plenty of delicious seafood dishes, such as grilled fish, prawns, and calamari. Have you ever tried any of these dishes before?
+
+USER: Friday, March 31, 2023 at 05:17PM  - no
+
+RAVEN: Friday, March 31, 2023 at 05:17PM  - Friday, March 31, 2023 at 05:17PM - You're in for a treat! Ugali is a maize-based dish that is a staple of Kenyan cuisine. It's usually served with a variety of sauces and vegetables. Sukuma wiki is a dish made with greens and tomatoes, and it's usually served with ugali. Nyama choma is a grilled meat dish, usually served with a side of ugali and vegetables. There are also plenty of delicious seafood dishes, such as grilled fish, prawns, and calamari. All of these dishes are sure to tantalize your taste buds! Have you ever tried any of these dishes before, or will this be your first time?
+
+
+
+NOTES:
+
+==========
+
+- User: Friday, March 31, 2023 at 05:06PM - Wants to travel to Diani
+- Raven: Friday, March 31, 2023 at 05:15PM - Explains that Diani is a beach town located on the Indian Ocean in Kenya, known for its white sand beaches, crystal clear waters, and lush vegetation
+- User: Friday, March 31, 2023 at 05:16PM - Says they have been to Diani before
+- Raven: Friday, March 31, 2023 at 05:16PM - Asks what the user enjoyed most about their visit
+- User: Friday, March 31, 2023 at 05:16PM - Says they enjoyed the food
+- Raven: Friday, March 31, 2023 at 05:17PM - Recommends local specialties such as ugali, sukuma wiki, and nyama choma, as well as seafood dishes such as grilled fish, prawns, and calamari
