@@ -110,6 +110,7 @@ def get_last_messages(conversation, limit):
 def gpt3_completion(prompt, engine='text-davinci-003', temp=0.0, top_p=1.0, tokens=400, freq_pen=0.0, pres_pen=0.0, stop=['USER:', 'RAVEN:']):
     max_retry = 5
     retry = 0
+    #prompt = "Diani" + prompt ##Add "Diani" to the prompt
     prompt = prompt.encode(encoding='ASCII',errors='ignore').decode()
     while True:
         try:
