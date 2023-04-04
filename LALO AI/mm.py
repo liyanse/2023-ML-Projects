@@ -86,7 +86,7 @@ def load_conversation(results):
 if __name__ == '__main__':
     convo_length = 30
     openai.api_key = open_file('key_openai.txt')
-    pinecone.init(api_key=open_file('key_pinecone.txt'), environment='us-east4-gcp')
+    pinecone.init(api_key=open_file('key_pinecone.txt'), environment='us-east-gcp')
     vdb = pinecone.Index("lalomvp")
     while True:
         #### get user input, save it, vectorize it, save to pinecone
