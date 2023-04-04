@@ -7,6 +7,7 @@ import re
 from time import time,sleep
 from uuid import uuid4
 import datetime
+import pinecone
 
 
 def open_file(filepath):
@@ -34,95 +35,16 @@ def timestamp_to_datetime(unix_time):
 
 
 def gpt3_embedding(content, engine='text-embedding-ada-002'):
-    content = content.encode(encoding='ASCII',errors='ignore').decode()
+    content = content.encode(encoding='ASCII',errors='ignore').decode()  # fix any UNICODE errors
     response = openai.Embedding.create(input=content,engine=engine)
     vector = response['data'][0]['embedding']  # this is a normal list
     return vector
 
 
-def similarity(v1, v2):
-    # based upon https://stackoverflow.com/questions/18424228/cosine-similarity-between-2-number-lists
-    return np.dot(v1, v2)/(norm(v1)*norm(v2))  # return cosine similarity
 
-
-def fetch_memories(vector, logs, count):
-    scores = list()
-    for i in logs:
-        if vector == i['vector']:
-            # skip this one because it is the same message
-            continue
-        score = similarity(i['vector'], vector)
-        i['score'] = score
-        scores.append(i)
-    ordered = sorted(scores, key=lambda d: d['score'], reverse=True)
-    # TODO - pick more memories temporally nearby the top most relevant memories
-    try:
-        ordered = ordered[0:count]
-        return ordered
-    except:
-        return ordered
-
-def load_convo():
-    files = os.listdir('nexus')
-    files = [i for i in files if '.json' in i]  # filter out any non-JSON files
-    result = list()
-    for file in files:
-        data = load_json('nexus/%s' % file)
-        result.append(data)
-    ordered = sorted(result, key=lambda d: d['time'], reverse=False)  # sort them all chronologically
-    return ordered
-
-
-def summarize_memories(memories):  # summarize a block of memories into one payload
-    memories = sorted(memories, key=lambda d: d['time'], reverse=False)  # sort them chronologically
-    block = ''
-    identifiers = list()
-    timestamps = list()
-    for mem in memories:
-        block += mem['message'] + '\n\n'
-        identifiers.append(mem['uuid'])
-        timestamps.append(mem['time'])
-    block = block.strip()
-    prompt = open_file('prompt_notes.txt').replace('<<INPUT>>', block)
-    # TODO - do this in the background over time to handle huge amounts of memories
-    notes = gpt3_completion(prompt)
-    ####   SAVE NOTES
-    vector = gpt3_embedding(block)
-    conversation_id = str(uuid4())  # generate a new conversation id
-    filename = 'conversation_%s.json' % conversation_id  # use the conversation id as the filename
-    if os.path.isfile('cinternal_notes/%s' % filename):  # if the conversation file already exists, load it
-        conversation = load_json('internal_notes/%s' % filename)
-    else:  # otherwise create a new conversation object
-        conversation = {'uuid': conversation_id, 'messages': []}
-    for mem in memories:  # add each message to the conversation
-        message = {'uuid': mem['uuid'], 'time': mem['time'], 'message': mem['message']}
-        conversation['messages'].append(message)
-    save_json('internal_notes/%s' % filename, conversation)  # save the conversation
-    return notes
-
-
-
-def get_last_messages(conversation_id, limit):
-    filename = 'conversation_%s.json' % conversation_id  # use the conversation id as the filename
-    if os.path.isfile('internal_notes/%s' % filename):  # if the conversation file exists, load it
-        conversation = load_json('internal_notes/%s' % filename)
-    else:  # otherwise return an empty string
-        return ''
-    try:
-        short = conversation['messages'][-limit:]
-    except:
-        short = conversation['messages']
-    output = ''
-    for i in short:
-        output += '%s\n\n' % i['message']
-    output = output.strip()
-   
-
-
-def gpt3_completion(prompt, engine='text-davinci-003', temp=0.0, top_p=1.0, tokens=400, freq_pen=0.0, pres_pen=0.0, stop=['USER:', 'RAVEN:']):
+def gpt3_completion(prompt, engine='text-davinci-003', temp=0.0, top_p=1.0, tokens=400, freq_pen=0.0, pres_pen=0.0, stop=['USER:', 'LALO:']):
     max_retry = 5
     retry = 0
-    #prompt = "Diani" + prompt ##Add "Diani" to the prompt
     prompt = prompt.encode(encoding='ASCII',errors='ignore').decode()
     while True:
         try:
@@ -151,39 +73,48 @@ def gpt3_completion(prompt, engine='text-davinci-003', temp=0.0, top_p=1.0, toke
             sleep(1)
 
 
+def load_conversation(results):
+    result = list()
+    for m in results['matches']:
+        info = load_json('nexus/%s.json' % m['id'])
+        result.append(info)
+    ordered = sorted(result, key=lambda d: d['time'], reverse=False)  # sort them all chronologically
+    messages = [i['message'] for i in ordered]
+    return '\n'.join(messages).strip()
+
+
 if __name__ == '__main__':
-    openai.api_key = open_file('openaiapikey.txt')
+    convo_length = 30
+    openai.api_key = open_file('key_openai.txt')
+    pinecone.init(api_key=open_file('key_pinecone.txt'), environment='us-east4-gcp')
+    vdb = pinecone.Index("lalomvp")
     while True:
-        #### get user input, save it, vectorize it, etc
+        #### get user input, save it, vectorize it, save to pinecone
+        payload = list()
         a = input('\n\nUSER: ')
         timestamp = time()
-        vector = gpt3_embedding(a)
         timestring = timestamp_to_datetime(timestamp)
-        message = '%s: %s - %s' % ('USER', timestring, a)
-        info = {'speaker': 'USER', 'time': timestamp, 'vector': vector, 'message': message, 'uuid': str(uuid4()), 'timestring': timestring}
-        filename = 'log_%s_USER.json' % timestamp
-        save_json('nexus/%s' % filename, info)
-        #### load conversation
-        conversation = load_convo()
-        #### compose corpus (fetch memories, etc)
-        memories = fetch_memories(vector, conversation, 10)  # pull episodic memories
-        # TODO - fetch declarative memories (facts, wikis, KB, company data, internet, etc)
-        notes = summarize_memories(memories)
-        # TODO - search existing notes first
-        recent = get_last_messages(conversation, 4)
-        prompt = open_file('prompt_response.txt').replace('<<NOTES>>', notes).replace('<<CONVERSATION>>', recent)
+        #message = '%s: %s - %s' % ('USER', timestring, a)
+        message = a
+        vector = gpt3_embedding(message)
+        unique_id = str(uuid4())
+        metadata = {'speaker': 'USER', 'time': timestamp, 'message': message, 'timestring': timestring, 'uuid': unique_id}
+        save_json('nexus/%s.json' % unique_id, metadata)
+        payload.append((unique_id, vector))
+        #### search for relevant messages, and generate a response
+        results = vdb.query(vector=vector, top_k=convo_length)
+        conversation = load_conversation(results)  # results should be a DICT with 'matches' which is a LIST of DICTS, with 'id'
+        prompt = open_file('prompt_response.txt').replace('<<CONVERSATION>>', conversation).replace('<<MESSAGE>>', a)
         #### generate response, vectorize, save, etc
         output = gpt3_completion(prompt)
         timestamp = time()
-        vector = gpt3_embedding(output)
         timestring = timestamp_to_datetime(timestamp)
-        message = '%s: %s - %s' % ('RAVEN', timestring, output)
-        info = {'speaker': 'RAVEN', 'time': timestamp, 'vector': vector, 'message': message, 'uuid': str(uuid4()), 'timestring': timestring}
-        filename = 'log_%s_RAVEN.json' % time()
-        save_json('nexus/%s' % filename, info)
-        #### print output
-        print('\n\nRAVEN: %s' % output) 
-
-
-
-
+        #message = '%s: %s - %s' % ('RAVEN', timestring, output)
+        message = output
+        vector = gpt3_embedding(message)
+        unique_id = str(uuid4())
+        metadata = {'speaker': 'LALO', 'time': timestamp, 'message': message, 'timestring': timestring, 'uuid': unique_id}
+        save_json('nexus/%s.json' % unique_id, metadata)
+        payload.append((unique_id, vector))
+        vdb.upsert(payload)
+        print('\n\nLALO: %s' % output) 
